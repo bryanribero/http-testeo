@@ -4,7 +4,13 @@ import http from 'http'
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`)
 
-  if (url.pathname === '/producto' && req.method === 'GET') {
+  const parts = url.pathname.split('/')
+
+  const resource = parts[1]
+  const id = parts[2]
+  const action = parts[3]
+
+  if (resource === 'producto' && req.method === 'GET' && !id) {
     try {
       const page = parseInt(url.searchParams.get('page')) || 1
       const limit = parseInt(url.searchParams.get('limit')) || 5
@@ -31,6 +37,21 @@ const server = http.createServer(async (req, res) => {
           error: err.message
         })
       )
+    }
+  } else if (resource === 'producto' && req.method === 'GET' && id && !action) {
+    try {
+      const result = await pool.query('SELECT * FROM producto WHERE id_producto = $1', [id])
+
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(
+        JSON.stringify({
+          message: `Seleccion con el id:${id} logrado con exito!`,
+          producto: result.rows
+        })
+      )
+    } catch (err) {
+      res.writeHead(500, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ error: err.message }))
     }
   } else if (url.pathname === '/producto' && req.method === 'POST') {
     let body = ''
